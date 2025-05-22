@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 
 # Cargar datos
-df = pd.read_csv("datos_limpio.csv")
+df = pd.read_csv("datos_limpio.csv", encoding="latin1")
 
 # Título
 st.title("Dashboard de Jonrones por Jugador")
