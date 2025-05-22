@@ -1,44 +1,49 @@
-import streamlit as st
+Ôªøimport streamlit as st
 import pandas as pd
 import altair as alt
 
-# TÌtulo del dashboard
-st.title("Dashboard de Jonrones por Jugador")
+# Cargar datos
+df = pd.read_csv("datos_limpios.csv")
 
-# Cargar los datos (forzamos la codificaciÛn para evitar errores)
-try:
-    df = pd.read_csv("datos_limpio.csv", encoding="utf-8")
-except UnicodeDecodeError:
-    df = pd.read_csv("datos_limpio.csv", encoding="latin1")
-
-# Mostrar los primeros registros
-st.subheader("Vista previa de los datos")
-st.dataframe(df)
+st.set_page_config(page_title="Dashboard de Home Runs", layout="wide")
+st.title("üèÄ Dashboard de Jugadores de B√©isbol")
 
 # Filtro por equipo
-equipos = df["team"].unique()
-equipo_seleccionado = st.selectbox("Selecciona un equipo", equipos)
+equipos = df['team'].unique()
+equipo_seleccionado = st.sidebar.multiselect("Selecciona equipo(s):", equipos, default=equipos)
 
-# Filtrar el DataFrame por el equipo seleccionado
-df_filtrado = df[df["team"] == equipo_seleccionado]
+# Filtrar datos
+df_filtrado = df[df['team'].isin(equipo_seleccionado)]
 
-# Gr·fico: HR Totales por Jugador
-st.subheader(f"HR Totales del equipo {equipo_seleccionado}")
-grafico = alt.Chart(df_filtrado).mark_bar().encode(
-    x=alt.X("player", sort="-y"),
-    y="hr_total",
-    tooltip=["player", "hr_total"]
-).properties(width=600, height=400)
+# Mostrar tabla
+st.subheader("Tabla de Jugadores")
+st.dataframe(df_filtrado, use_container_width=True)
 
-st.altair_chart(grafico)
+# M√©tricas principales
+col1, col2, col3 = st.columns(3)
+col1.metric("Total HR", int(df_filtrado['hr_total'].sum()))
+col2.metric("HR Promedio por Jugador", round(df_filtrado['hr_total'].mean(), 1))
+col3.metric("Promedio HR trot (s)", round(df_filtrado['avg_hr_trot'].mean(), 2))
 
-# Mostrar mÈtricas por jugador
-st.subheader("EstadÌsticas individuales")
-jugador = st.selectbox("Selecciona un jugador", df_filtrado["player"])
-jugador_data = df_filtrado[df_filtrado["player"] == jugador].iloc[0]
+# Gr√°fica de barras
+st.subheader("Home Runs Totales por Jugador")
+barras = alt.Chart(df_filtrado).mark_bar().encode(
+    x=alt.X('player', sort='-y', title='Jugador'),
+    y=alt.Y('hr_total', title='Total HR'),
+    color='team'
+).properties(width=800, height=400)
 
-st.metric("Avg HR Trot", jugador_data["avg_hr_trot"])
-st.metric("Doubters", jugador_data["doubters"])
-st.metric("No Doubters", jugador_data["no_doubters"])
-st.metric("HR Total", jugador_data["hr_total"])
-st.metric("xHR", jugador_data["xhr"])
+st.altair_chart(barras, use_container_width=True)
+
+# Diagrama de dispersi√≥n
+st.subheader("HR Totales vs HR Esperados")
+dispersion = alt.Chart(df_filtrado).mark_circle(size=100).encode(
+    x=alt.X('xhr', title='HR Esperados'),
+    y=alt.Y('hr_total', title='HR Totales'),
+    tooltip=['player', 'team', 'hr_total', 'xhr'],
+    color='team'
+).interactive().properties(width=800, height=400)
+
+st.altair_chart(dispersion, use_container_width=True)
+
+st.caption("Fuente: datos_limpios.csv")
